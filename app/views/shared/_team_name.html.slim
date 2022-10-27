@@ -1,10 +1,5 @@
 - country = ISO3166::Country.find_country_by_name(team.name)
 - if country.present? && team.logourl == ""
   div class="flag-icon flag-icon-#{country.alpha2.downcase}"
-= image_tag("northern_ireland_flag.png", class: "flag-icon") if team.name == "Northern Ireland"
-= image_tag("republic_of_ireland_flag.png", class: "flag-icon") if team.name == "Republic of Ireland"
-= image_tag("wales_flag.png", class: "flag-icon") if team.name == "Wales"
-= image_tag("england_flag.png", class: "flag-icon") if team.name == "England"
-= image_tag("scotland_flag.png", class: "flag-icon") if team.name == "Scotland"
 = image_tag(team.logourl, class: "flag-icon") if team.logourl != ""
 span =" " + team.name
