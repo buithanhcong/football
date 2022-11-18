@@ -4,14 +4,15 @@ Rails.application.routes.draw do
   devise_for :users
 
   # FIXME: restructure these routes by "resource" and "scope"
-  get     'cups'              => "cups#index",      as: :cups
+  get     'cups'              => "cups#index",        as: :cups
   post    'cups'              => "cups#create"
-  get     'cups/new'          => "cups#new",        as: :new_cup
-  get     'cups/:cup_id/edit' => "cups#edit",       as: :edit_cup
-  get     'cups/:cup_id'      => "cups#show",       as: :cup
+  get     'cups/new'          => "cups#new",          as: :new_cup
+  get     'cups/:cup_id/edit' => "cups#edit",         as: :edit_cup
+  get     'cups/:cup_id'      => "cups#show",         as: :cup
   patch   'cups/:cup_id'      => "cups#update"
   put     'cups/:cup_id'      => "cups#update"
-  delete  'cups/:cup_id'      => "cups#destroy",    as: :delete_cup
+  delete  'cups/:cup_id'      => "cups#destroy",      as: :delete_cup
+  get     'cups/:cup_id/rgp'  => "cups#rnd_grp_pre",  as: :rand_grp_cup  
 
   get     'teams/:cup_id'       => "teams#index",     as: :teams
   post    'teams/:cup_id'       => "teams#create"

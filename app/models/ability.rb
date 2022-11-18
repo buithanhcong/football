@@ -11,6 +11,7 @@ class Ability
       can [:update, :destroy], Prediction, Prediction.all do |prediction|
         (prediction.user_id == user.id) && prediction.open?
       end
+      can :rnd_grp_pre, Cup
       can :read, :all
     end
   end

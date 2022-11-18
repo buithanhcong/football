@@ -27,6 +27,7 @@ class User < ActiveRecord::Base
   def predictions_of_stage(cup, knockout)
     predictions_of_cup(cup).select{|p| (p.match.knockout == knockout) && p.match.closed?}
   end
+
   def self.reset_pass(i_email)
     # Its static method
     @u = find_by(email: i_email)

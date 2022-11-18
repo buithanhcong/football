@@ -72,3 +72,5 @@ hr
   = link_to 'Edit', edit_cup_path(@cup), class: "btn btn-primary"
   |  | 
 = link_to 'Back', cups_path, class: "btn btn-primary"
+|  | 
+= link_to 'Randomize Group Stage Predictions', rand_grp_cup_path(@cup), data: { confirm: 'Are you sure?' },class: "btn btn-primary"
