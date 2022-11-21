@@ -244,4 +244,17 @@ class Match < ActiveRecord::Base
   def valid_users_count
     valid_users.count
   end
+
+  def random_score
+    randnum = rand(100)
+    if randnum < 70
+      rand(3)
+    elsif randnum < 85
+      3
+    elsif randnum < 95
+      4
+    else
+      5
+    end
+  end
 end

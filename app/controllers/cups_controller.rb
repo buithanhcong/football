@@ -48,10 +48,10 @@ class CupsController < ApplicationController
     @cup.matches.each do |m|
       if (!m.started? && !m.knockout?)
         if m.prediction_of(current_user).nil?
-          @prediction = Prediction.new(user_id: current_user.id, cup_id: @cup.id, match_id: m.id, mainscore1: rand(6), mainscore2: rand(6))
+          @prediction = Prediction.new(user_id: current_user.id, cup_id: @cup.id, match_id: m.id, mainscore1: m.random_score, mainscore2: m.random_score)
           @prediction.save
         else
-          m.prediction_of(current_user).update_attributes(mainscore1: rand(6), mainscore2: rand(6))
+          m.prediction_of(current_user).update_attributes(mainscore1: m.random_score, mainscore2: m.random_score)
         end
       end
     end
