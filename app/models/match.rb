@@ -204,16 +204,8 @@ class Match < ActiveRecord::Base
 
   def update_result
     require 'net/http'
-    if team1.name == "South Korea"
-      home_team_name = "Korea Republic"
-    else
-      home_team_name = team1.name
-    end
-    if team2.name == "South Korea"
-      away_team_name = "Korea Republic"
-    else
-      away_team_name = team2.name
-    end
+    home_team_name = team1.name
+    away_team_name = team2.name
     uri = URI.parse("http://api.football-data.org/v2/competitions/"+cup.result_id.to_s+"/matches?dateFrom="+Date.yesterday.strftime("%Y-%m-%d")+"&dateTo="+Date.tomorrow.strftime("%Y-%m-%d"))
     http = Net::HTTP.new(uri.host, uri.port).start
     request = Net::HTTP::Get.new(uri.request_uri, {"X-Auth-Token"=>ENV['PG_API_KEY']})
