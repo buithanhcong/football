@@ -17,9 +17,9 @@ div.div-table-content
   table.table.table-hover.table-condensed
     tbody
       - @matches.each_with_index do |match, index|
-        tr.clickable href="#{match_path(match)}"
+        tr
           td.col-xs-1 = index+1
-          td.col-xs-3 = render "shared/match_name", match: match
+          td.col-xs-3.clickable href="#{match_path(match)}" = render "shared/match_name", match: match
           td.col-xs-1 = match.time.to_s(:match)
           td.col-xs-1 = match.human_status
           td.col-xs-1 = match.fullscores
@@ -35,6 +35,7 @@ div.div-table-content
             - if can?(:destroy, match)
               = link_to 'Destroy', delete_match_path(match), method: :delete, data: { confirm: 'Are you sure?' }, class: 'btn btn-xs btn-danger btn-one-col'
             - if can?(:edit, match)
+              = link_to 'Update', cal_scr_match_path(match), class: 'btn btn-xs btn-warning btn-one-col btn-enabled'
               = link_to 'Edit', edit_match_path(match), class: 'btn btn-xs btn-warning btn-one-col btn-enabled'
 
 hr

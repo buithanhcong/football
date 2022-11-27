@@ -1,6 +1,6 @@
 class MatchesController < ApplicationController
   load_and_authorize_resource param_method: :match_params
-  before_action :set_match, only: [:show, :edit, :update, :destroy]
+  before_action :set_match, only: [:show, :edit, :update, :destroy, :cal_scr]
   before_action :set_cup, only: [:index, :create, :new]
 
   def index
@@ -43,6 +43,11 @@ class MatchesController < ApplicationController
     @match.destroy
     redirect_to matches_path(cup_id: @match.cup_id), 
       notice: 'Match was successfully destroyed.'
+  end
+
+  def cal_scr
+    @match.save
+    redirect_to matches_path(cup_id: @match.cup_id), notice: 'Match was successfully updated.'
   end
 
   private

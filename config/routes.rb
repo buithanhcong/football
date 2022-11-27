@@ -37,6 +37,7 @@ Rails.application.routes.draw do
   patch   'matches/:match_id/show'      => "matches#update"
   put     'matches/:match_id/show'      => "matches#update"
   delete  'matches/:match_id'           => "matches#destroy", as: :delete_match
+  get     'matches/rcr/:match_id'       => "matches#cal_scr", as: :cal_scr_match
 
   get     'predictions/:cup_id'             => "predictions#index",   as: :predictions
   post    'predictions/:cup_id'             => "predictions#create"
