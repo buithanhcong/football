@@ -47,6 +47,7 @@ class MatchesController < ApplicationController
 
   def cal_scr
     @match.update_predictions_reward
+    @match.update_users_score_reward
     redirect_to matches_path(cup_id: @match.cup_id), notice: 'Match was successfully updated.'
   end
 
