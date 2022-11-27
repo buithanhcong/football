@@ -230,7 +230,7 @@ class Match < ActiveRecord::Base
   end
 
   def valid_users
-    cup.active_users.select{|u| u.predictions_of_cup(cup).order(match_id: :asc).first.match.knockout?}
+    cup.active_users.select{|u| !u.predictions_of_cup(cup).order(match_id: :asc).first.match.knockout?}
   end
 
   def valid_users_count
