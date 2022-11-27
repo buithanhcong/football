@@ -27,6 +27,7 @@ class Cup < ActiveRecord::Base
   def update_group_stage_score
     matches.select{|match| (match.closed? && !match.knockout?)}.each do |m|
       m.update_predictions_reward
+      m.update_users_score_reward
     end
   end
 
