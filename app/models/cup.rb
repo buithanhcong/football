@@ -24,6 +24,12 @@ class Cup < ActiveRecord::Base
     end
   end
 
+  def update_group_stage_score
+    matches.select{|match| (match.closed? && !match.knockout?)}.each do |m|
+      m.update_score
+    end
+  end
+
   def active_users
     User.select{|u| !u.inactive?(self)}
   end

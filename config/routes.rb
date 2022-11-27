@@ -1,7 +1,12 @@
 Rails.application.routes.draw do
   get 'users/index'
+  get 'users/index/:cup_id/:stage'         => "users#index",      as: :leader_board
+  get 'users/list/:cup_id'                 => "users#list",       as: :users_list
+  get 'users/reset_pass/:cup_id/:u_id'     => "users#reset_pass", as: :user_reset_pass
+  get 'users/remove_cup/:cup_id/:u_id'     => "users#remove_cup", as: :user_remove_cup
 
   devise_for :users
+
 
   # FIXME: restructure these routes by "resource" and "scope"
   get     'cups'              => "cups#index",        as: :cups
@@ -13,6 +18,7 @@ Rails.application.routes.draw do
   put     'cups/:cup_id'      => "cups#update"
   delete  'cups/:cup_id'      => "cups#destroy",      as: :delete_cup
   get     'cups/:cup_id/rgp'  => "cups#rnd_grp_pre",  as: :rand_grp_cup  
+  get     'cups/:cup_id/cgp'  => "cups#cal_grp_scr",  as: :calc_grp_score_cup  
 
   get     'teams/:cup_id'       => "teams#index",     as: :teams
   post    'teams/:cup_id'       => "teams#create"

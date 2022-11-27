@@ -1,0 +1,45 @@
+- if can?(:reset_pass, User)
+  h2 Listing Users
+
+  div.panel.panel-default
+    table.table.table-cond:wensed
+      thead
+        tr
+          th.col-xs-1 #
+          th.col-xs-3 Email
+          th.col-xs-1 colspan="3"
+
+  div.div-table-content
+    table.table.table-hover.table-condensed
+      tbody
+        - @users.each_with_index do |u, index|
+          tr
+            td.col-xs-1 = index+1
+            td.col-xs-3 = u.email
+            td.col-xs-1.text-right
+              = link_to 'Reset', user_reset_pass_path(u_id: u.id), data: { confirm: 'Are you sure?' }, class: 'btn btn-xs btn-danger btn-one-col'
+
+h2 Listing Active Users For #{@cup.name}
+
+div.panel.panel-default
+  table.table.table-cond:wensed
+    thead
+      tr
+        th.col-xs-1 #
+        th.col-xs-3 Email
+        th.col-xs-1 Predictions
+        th.col-xs-1 Score
+        th.col-xs-1 colspan="3"
+
+div.div-table-content
+  table.table.table-hover.table-condensed
+    tbody
+      - @cup.active_users.each_with_index do |u, index|
+        tr
+          td.col-xs-1 = index+1
+          td.col-xs-3 = u.email
+          td.col-xs-1 = u.predictions_of_cup(@cup).count
+          td.col-xs-1 = u.get_score(@cup)
+          td.col-xs-1.text-right
+            - if can?(:remove_cup, User)
+              = link_to 'Remove', user_remove_cup_path(cup_id: @cup.id, u_id: u.id), data: { confirm: 'Are you sure?' }, class: 'btn btn-xs btn-danger btn-one-col'

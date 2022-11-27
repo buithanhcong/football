@@ -1,6 +1,6 @@
 class CupsController < ApplicationController
   load_and_authorize_resource cup_method: :cup_params
-  before_action :set_cup, only: [:show, :edit, :update, :destroy, :rnd_grp_pre]
+  before_action :set_cup, only: [:show, :edit, :update, :destroy, :rnd_grp_pre, :cal_grp_scr]
 
   def index
     @cups = Cup.all
@@ -56,6 +56,11 @@ class CupsController < ApplicationController
       end
     end
     redirect_to @cup, notice: 'Randomize predtictions done.'
+  end
+
+  def cal_grp_scr
+    @cup.update_group_stage_score
+    redirect_to leader_board_url(stage: 'group')
   end
 
   private

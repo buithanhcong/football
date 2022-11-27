@@ -34,6 +34,44 @@ class UsersController < ApplicationController
     end
   end
 
+  def list
+    @users = User.all
+    @cup = Cup.find(params[:cup_id])
+  end
+
+  def reset_pass
+    @cup = Cup.find(params[:cup_id])
+    @u = User.find(params[:u_id])
+    if @u.nil?
+      if @cup.nil?
+        redirect_to users_list_url, notice: 'User not found!'
+      else
+        redirect_to users_list_url(cup_id: @cup.id), notice: 'User not found!'
+      end
+    else
+      require 'bcrypt'
+      @u.update(encrypted_password: BCrypt::Password.create("12345678"))
+      if @cup.nil?
+        redirect_to users_list_url, notice: 'Password reset done!'
+      else
+        redirect_to users_list_url(cup_id: @cup.id), notice: 'Password reset done!'
+      end
+    end
+  end
+
+  def remove_cup
+    @cup = Cup.find(params[:cup_id])
+    @u = User.find(params[:u_id])
+    if @u.nil?
+      redirect_to users_list_url(cup_id: @cup.id), notice: 'User not found!'
+    else
+      @u.predictions_of_stage(@cup, false).each do |p|
+        p.destroy
+      end
+      redirect_to users_list_url(cup_id: @cup.id), notice: 'User removed from the Cup!'
+    end
+  end
+
   private
 
   def user_params

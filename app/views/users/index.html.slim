@@ -27,6 +27,8 @@ h2 Detail result for each match
           =userscore.score
           span  | 
           =userscore.reward
+  - if can?(:edit, @cup)
+    = link_to 'Re-calculate Result', calc_grp_score_cup_path(@cup), data: { confirm: 'Are you sure?' }, class: "btn btn-primary"
 - if @stage == 'knockout'
   - @layout_width = "#{400+100*@userknockoutrewards.count}px;"
   table.table.table-hover.fixed-header width=@layout_width
