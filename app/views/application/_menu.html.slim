@@ -14,7 +14,7 @@ div.navbar-collapse.collapse.nav-app-collapse
             li: a href=leader_board_path(:cup_id => @cup.id, :stage => 'knockout') Knockout Stage Leaderboard
         - if current_user
           li: a href=edit_user_path Change Password 
-          - if @cup && current_user.admin?
+          - if @cup && params[:cup_id] && current_user.admin?
             li: a href=users_list_path(:cup_id => @cup.id) Admin Panel
           li: a href=destroy_user_session_path data-method="delete" Sign-out 
                 (#{current_user.name})

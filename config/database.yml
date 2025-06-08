@@ -16,6 +16,6 @@ development:
 
 production:
   <<: *default
-  database: football_production
-  username: <%= ENV['UNTITLEDAPP_DATABASE_USERNAME'] %>
-  password: <%= ENV['UNTITLEDAPP_DATABASE_PASSWORD'] %>
+  database: <%= ENV['FOOTBALL_DATABASE'] %>
+  username: <%= ENV['FOOTBALL_USERNAME'] %>
+  password: <%= ENV['FOOTBALL_PASSWORD'] %>

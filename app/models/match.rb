@@ -204,26 +204,29 @@ class Match < ActiveRecord::Base
 
   def update_result
     require 'net/http'
-    home_team_name = team1.name
-    away_team_name = team2.name
-    uri = URI.parse("http://api.football-data.org/v2/competitions/"+cup.result_id.to_s+"/matches?dateFrom="+Date.yesterday.strftime("%Y-%m-%d")+"&dateTo="+Date.tomorrow.strftime("%Y-%m-%d"))
-    http = Net::HTTP.new(uri.host, uri.port).start
-    request = Net::HTTP::Get.new(uri.request_uri, {"X-Auth-Token"=>ENV['PG_API_KEY']})
-    resp = http.request(request)
-    if resp.kind_of? Net::HTTPSuccess
-      data = JSON.parse(resp.body)
-      match_results = data['matches'].select{|m| (m['homeTeam']['name'] == home_team_name && m['awayTeam']['name'] == away_team_name)}
-      if match_results.count > 0
-        last_m = match_results.last
-        ms1 = last_m['score']['fullTime']['homeTeam'].nil? ? 0 : last_m['score']['fullTime']['homeTeam'] - (last_m['score']['extraTime']['homeTeam'].nil? ? 0 : last_m['score']['extraTime']['homeTeam']) - (last_m['score']['penalties']['homeTeam'].nil? ? 0 : last_m['score']['penalties']['homeTeam'])
-        ms2 = last_m['score']['fullTime']['awayTeam'].nil? ? 0 : last_m['score']['fullTime']['awayTeam'] - (last_m['score']['extraTime']['awayTeam'].nil? ? 0 : last_m['score']['extraTime']['awayTeam']) - (last_m['score']['penalties']['awayTeam'].nil? ? 0 : last_m['score']['penalties']['awayTeam'])
-        ss1 = last_m['score']['extraTime']['homeTeam'].nil? ? nil : (ms1 + last_m['score']['extraTime']['homeTeam'])
-        ss2 = last_m['score']['extraTime']['awayTeam'].nil? ? nil : (ms2 + last_m['score']['extraTime']['awayTeam'])
-        if last_m['status'] == 'IN_PLAY'
-          update_attributes(mainscore1: ms1, mainscore2: ms2, subscore1: ss1, subscore2: ss2, penscore1: match_results.last['score']['penalties']['homeTeam'], penscore2: match_results.last['score']['penalties']['awayTeam'], status: false)
-        end
-        if last_m['status'] == 'FINISHED'
-          update_attributes(mainscore1: ms1, mainscore2: ms2, subscore1: ss1, subscore2: ss2, penscore1: match_results.last['score']['penalties']['homeTeam'], penscore2: match_results.last['score']['penalties']['awayTeam'], status: true)
+    if updated_at.nil? || updated_at < 1.minutes.ago
+      home_team_name = team1.name
+      away_team_name = team2.name
+      uri = URI.parse("http://api.football-data.org/v2/competitions/"+cup.result_id.to_s+"/matches?dateFrom="+Date.yesterday.strftime("%Y-%m-%d")+"&dateTo="+Date.tomorrow.strftime("%Y-%m-%d"))
+      #uri = URI.parse("http://api.football-data.org/v2/competitions/"+cup.result_id.to_s+"/matches")
+      http = Net::HTTP.new(uri.host, uri.port).start
+      request = Net::HTTP::Get.new(uri.request_uri, {"X-Auth-Token"=>ENV['PG_API_KEY']})
+      resp = http.request(request)
+      if resp.kind_of? Net::HTTPSuccess
+        data = JSON.parse(resp.body)
+        match_results = data['matches'].select{|m| (m['homeTeam']['name'] == home_team_name && m['awayTeam']['name'] == away_team_name)}
+        if match_results.count > 0
+          last_m = match_results.last
+          ms1 = last_m['score']['fullTime']['homeTeam'].nil? ? 0 : last_m['score']['fullTime']['homeTeam'] - (last_m['score']['extraTime']['homeTeam'].nil? ? 0 : last_m['score']['extraTime']['homeTeam']) - (last_m['score']['penalties']['homeTeam'].nil? ? 0 : last_m['score']['penalties']['homeTeam'])
+          ms2 = last_m['score']['fullTime']['awayTeam'].nil? ? 0 : last_m['score']['fullTime']['awayTeam'] - (last_m['score']['extraTime']['awayTeam'].nil? ? 0 : last_m['score']['extraTime']['awayTeam']) - (last_m['score']['penalties']['awayTeam'].nil? ? 0 : last_m['score']['penalties']['awayTeam'])
+          ss1 = last_m['score']['extraTime']['homeTeam'].nil? ? nil : (ms1 + last_m['score']['extraTime']['homeTeam'])
+          ss2 = last_m['score']['extraTime']['awayTeam'].nil? ? nil : (ms2 + last_m['score']['extraTime']['awayTeam'])
+          if last_m['status'] == 'IN_PLAY'
+            update_attributes(mainscore1: ms1, mainscore2: ms2, subscore1: ss1, subscore2: ss2, penscore1: match_results.last['score']['penalties']['homeTeam'], penscore2: match_results.last['score']['penalties']['awayTeam'], status: false)
+          end
+          if last_m['status'] == 'FINISHED'
+            update_attributes(mainscore1: ms1, mainscore2: ms2, subscore1: ss1, subscore2: ss2, penscore1: match_results.last['score']['penalties']['homeTeam'], penscore2: match_results.last['score']['penalties']['awayTeam'], status: true)
+          end
         end
       end
     end
