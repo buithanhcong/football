@@ -68,7 +68,7 @@ class Team < ActiveRecord::Base
       require 'net/http'
       uri = URI.parse("http://api.football-data.org/v2/competitions/"+cup.result_id.to_s+"/teams")
       http = Net::HTTP.new(uri.host, uri.port).start
-      request = Net::HTTP::Get.new(uri.request_uri, {"X-Auth-Token"=>ENV['PG_API_KEY']})
+      request = Net::HTTP::Get.new(uri.request_uri, {"X-Auth-Token"=>ENV['FOOTBALL_API_KEY']})
       resp = http.request(request)
       if resp.kind_of? Net::HTTPSuccess
         data = JSON.parse(resp.body)

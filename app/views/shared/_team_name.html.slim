@@ -1,5 +1,5 @@
-- country = ISO3166::Country.find_country_by_name(team.name)
+- country = ISO3166::Country.find_by_translated_names(team.name)
 - if country.present? && team.logourl == ""
-  div class="flag-icon flag-icon-#{country.alpha2.downcase}"
+  div class="flag-icon flag-icon-#{country.last["alpha2"].downcase}"
 = image_tag(team.logourl, class: "flag-icon") if team.logourl != ""
 span =" " + team.name

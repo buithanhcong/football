@@ -6,7 +6,7 @@ table.table
     th.col-xs-8 =render "shared/match_name", match: @match
   tr
     td Time
-    td= @match.time.to_s(:match)
+    td= @match.time.to_s
   tr
     td Stage
     td= @match.knockout? ? "Knockout" : "Group"

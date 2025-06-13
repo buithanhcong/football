@@ -20,3 +20,5 @@
 .idea
 
 *.old
+
+.env

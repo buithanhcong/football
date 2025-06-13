@@ -1,29 +1,30 @@
-version: '2'
 services:
   db:
-    image: postgres
-    environment:
-      - POSTGRES_USER=postgres
-      - POSTGRES_PASSWORD=
-      - LC_ALL=C.UTF-8
-  box:
-    image: busybox
+    image: 'postgres:latest'
+    container_name: football-db
     volumes:
-      - /box
-  app:
-    image: quangphan/webapp
-    command: ./bin/start.sh
+      - postgres:/var/lib/postgresql/data
+    env_file:
+     - .env
+    environment:
+      - POSTGRES_USER=${FOOTBALL_USERNAME}
+      - POSTGRES_PASSWORD=${FOOTBALL_PASSWORD}
+      - POSTGRES_DB=${FOOTBALL_DATABASE}
+    restart: unless-stopped
+  web:
+    image: 'football:1'
+    container_name: football-web
+    build:
+      context: .
+      dockerfile: Dockerfile
+    ports:
+      - '8088:3000'
     volumes:
       - .:/app
-    volumes_from:
-      - box
-    ports:
-      - "3000:3000"
-    environment:
-      - PG_USERNAME=postgres
-      - PG_PASSWORD=
-      - PG_HOST=db
+    env_file:
+     - .env
     depends_on:
-      - box
-    links:
       - db
+    restart: unless-stopped
+volumes:
+  postgres: 

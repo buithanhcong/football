@@ -2,32 +2,34 @@ source 'https://rubygems.org'
 ruby "3.4.4"
 
 gem 'rails', '8.0.2'
-gem 'sass-rails', '~> 5.0'
-gem 'uglifier', '>= 1.3.0'
-gem 'coffee-rails', '~> 5.0.0'
+gem 'sass-rails'
+gem 'uglifier'
+gem 'coffee-rails'
 
 gem 'jquery-rails'
 gem 'turbolinks'
-gem 'jbuilder', '~> 2.0'
-gem 'sdoc', '~> 0.4.0', group: :doc
+gem 'jbuilder'
+gem 'sdoc', group: :doc
+gem 'json'
 
-gem 'devise', '4.9.4'
-gem 'slim', '~> 3.0'
+gem 'devise'
+gem 'slim'
 gem 'bootstrap-sass'
 gem 'cancancan'
-gem 'pg', '~> 1.5.9'
+gem 'pg'
 gem 'countries'
 gem 'flag-icon-sass'
 
 gem 'puma'
-gem 'bigdecimal', '3.2.2'
+gem 'bigdecimal'
 
-gem 'ostruct', '0.6.1'
-gem 'abbrev', '0.1.2'
+gem 'ostruct'
+gem 'abbrev'
+gem 'sprockets'
 
 group :development, :test do
   gem 'byebug'
-  gem 'web-console', '~> 2.0'
+  gem 'web-console'
   gem 'spring'
   gem 'foreman'
 end
