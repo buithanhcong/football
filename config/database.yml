@@ -3,21 +3,15 @@ default: &default
   encoding: unicode
   pool: 5
   host: <%= ENV['PG_HOST'] %>
-
-test:
-  <<: *default
-  database: football_test_db
-  username: football_test
-  password: 12341234
-
-development:
-  <<: *default
-  database: football_dev_db
-  username: football_dev
-  password: 12341234
-
-production:
-  <<: *default
   database: <%= ENV['FOOTBALL_DATABASE'] %>
   username: <%= ENV['FOOTBALL_USERNAME'] %>
   password: <%= ENV['FOOTBALL_PASSWORD'] %>
+
+test:
+  <<: *default
+
+development:
+  <<: *default
+
+production:
+  <<: *default

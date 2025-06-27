@@ -1,4 +1,4 @@
-FROM ruby:3.4.4 as base
+FROM ruby:3.4.4
 
 RUN apt-get update -qq && apt-get install -y build-essential apt-utils libpq-dev nodejs
 
