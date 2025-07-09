@@ -22,3 +22,5 @@
 *.old
 
 .env
+
+/config/master.key

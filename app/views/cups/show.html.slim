@@ -37,7 +37,7 @@ hr
         - @nextmatches.each do |match|
           tr.clickable href="#{match_path(match.id)}"
             td.col-xs-3 = render "shared/match_name", match: match
-            td.col-xs-3 = match.time.to_s(:match)
+            td.col-xs-3 = match.time.to_fs(:match)
             td.col-xs-3 = match.priorities
             - if match.prediction_of(@current_user)
               - if match.knockout?
@@ -63,7 +63,7 @@ hr
         - @prematches.each do |match|
           tr.clickable href="#{match_path(match.id)}"
             td.col-xs-2 = render "shared/match_name", match: match
-            td.col-xs-1 = match.time.to_s
+            td.col-xs-1 = match.time.to_fs(:match)
             td.col-xs-1 = match.human_status
             td.col-xs-1 = match.fullscores
             td.col-xs-2 = match.prediction_winners_names
