@@ -43,7 +43,7 @@ class Team < ActiveRecord::Base
     played_matches.each do |match|
       score += match.equal? ? 1 : (match.winner == self ? 3 : 0)
     end
-    update_attributes(score: score)
+    update(score: score)
   end
 
   def update_status
@@ -51,10 +51,10 @@ class Team < ActiveRecord::Base
     next_stage_teams = group.first(2)
     eliminated_teams = group.last(2)
     next_stage_teams.each do |t|
-      t.update_attributes(status: true)
+      t.update(status: true)
     end
     eliminated_teams.each do |t|
-      t.update_attributes(status: false)
+      t.update(status: false)
     end
   end
 
@@ -66,15 +66,16 @@ class Team < ActiveRecord::Base
 
     def get_logourl
       require 'net/http'
-      uri = URI.parse("http://api.football-data.org/v2/competitions/"+cup.result_id.to_s+"/teams")
-      http = Net::HTTP.new(uri.host, uri.port).start
+      uri = URI.parse("https://api.football-data.org/v4/competitions/"+cup.result_id.to_s+"/teams?season="+Date.today.strftime("%Y"))
+      http = Net::HTTP.new(uri.host, uri.port)
+      http.use_ssl = (uri.scheme == 'https')
       request = Net::HTTP::Get.new(uri.request_uri, {"X-Auth-Token"=>ENV['FOOTBALL_API_KEY']})
       resp = http.request(request)
       if resp.kind_of? Net::HTTPSuccess
         data = JSON.parse(resp.body)
         teams = data['teams'].select{|m| (m['name'] == name)}
         if teams.count > 0
-          teams.last['crestUrl']
+          teams.last['crest']
         else
           ''
         end

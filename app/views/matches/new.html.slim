@@ -1,5 +1,36 @@
 h1 New Match
 
+div
+  h2 Avaiable match list
+  - if @cup.available_match_list.blank?
+    p.text-muted.text-center.my-4 No available matches found.  
+  - else
+    .table-responsive.mt-4
+      table.table.table-hover.align-middle
+        thead.table-light
+          tr
+            th scope="col" style="width: 15%" ID
+            th scope="col" Match
+            th scope="col" Time
+            th scope="col" style="width: 20%" Status
+            th scope="col" Actions
+        tbody
+          - @cup.available_match_list.each do |t|
+            tr id="avai-match-#{t[:id]}"
+              td.text-secondary.fw-bold = t[:id]
+              td.fw-medium = t[:name]
+              td.fw-medium = t[:date]
+              td class="col-xs-1 #{t[:status] ? "danger": "success"}" = t[:status] ? "Added" : "Available"
+              td
+                - unless t[:status]
+                  - teams = t[:name].split(" vs ")
+                  - team1 = @cup.teams.find_by(name: teams[0])
+                  - team2 = @cup.teams.find_by(name: teams[1])
+                  - if team1 && team2
+                    = button_to "Add Match", matches_path(cup_id: @cup.id), method: :post, params: { match: { team1_id: team1.id, team2_id: team2.id, time: t[:date], status: false, knockout: false } }, class: "btn btn-sm btn-primary"
+                  - else
+                    span.text-danger.small Teams missing in DB
+
 = render 'form'
 
 hr

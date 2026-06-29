@@ -38,4 +38,47 @@ class Cup < ActiveRecord::Base
   def active_users_count
     active_users.count
   end
+
+  def available_team_list
+    require 'net/http'
+    uri = URI.parse("https://api.football-data.org/v4/competitions/"+result_id.to_s+"/teams?season="+Date.today.strftime("%Y"))
+    http = Net::HTTP.new(uri.host, uri.port)
+    http.use_ssl = (uri.scheme == 'https')
+    request = Net::HTTP::Get.new(uri.request_uri, {"X-Auth-Token"=>ENV['FOOTBALL_API_KEY']})
+    resp = http.request(request)
+    if resp.kind_of? Net::HTTPSuccess
+      existing_team_names = teams.pluck(:name)
+      data = JSON.parse(resp.body)
+      @available_team_list = data['teams'].map { |t| { id: t['id'], name: t['name'], coach: t.dig('coach', 'name') || 'No Coach Listed', status: existing_team_names.include?(t['name']) } }
+    else
+      @available_team_list = []
+    end
+  end
+
+  def available_match_list
+    require 'net/http'
+    uri = URI.parse("https://api.football-data.org/v4/competitions/"+result_id.to_s+"/matches?season="+Date.today.strftime("%Y"))
+    http = Net::HTTP.new(uri.host, uri.port)
+    http.use_ssl = (uri.scheme == 'https')
+    request = Net::HTTP::Get.new(uri.request_uri, {"X-Auth-Token"=>ENV['FOOTBALL_API_KEY']})
+    resp = http.request(request)
+    if resp.kind_of?(Net::HTTPSuccess)
+      existing_match_names = matches.map(&:short_name).to_set
+      data = JSON.parse(resp.body)
+      @available_match_list = data['matches'].select { |m|
+        m['status'] == 'TIMED' && m.dig('homeTeam', 'id') && m.dig('awayTeam', 'id')
+      }.map { |e| 
+        match_name = "#{e.dig('homeTeam', 'name')} vs #{e.dig('awayTeam', 'name')}"
+        localized_time = Time.zone.parse(e['utcDate'])
+        { 
+          id: e['id'], 
+          name: match_name,
+          date: localized_time.strftime("%d %b %Y, %H:%M"),
+          status: existing_match_names.include?(match_name)
+        } 
+      }
+    else
+      @available_match_list = []
+    end
+  end
 end

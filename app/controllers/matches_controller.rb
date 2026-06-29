@@ -22,7 +22,13 @@ class MatchesController < ApplicationController
   end
 
   def create
-    @match = Match.new(match_params.merge(cup_id: @cup.id))
+    match_defaults = { 
+      prior1: 0, prior2: 0,
+      fee: 10000, special_final: false 
+    }
+    sanitized_params = match_params.with_defaults(match_defaults)
+    @match = Match.new(sanitized_params.merge(cup_id: @cup.id))
+    #@match = Match.new(match_params.merge(cup_id: @cup.id))
 
     if @match.save
       redirect_to @match, notice: 'Match was successfully created.'

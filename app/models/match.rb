@@ -12,7 +12,7 @@ class Match < ActiveRecord::Base
     predictions.find_by(user: user)
   end
 
-  def name
+  def name(*_args)
     team1.name + ((prior1.nil? || prior1== 0) ? '' : "(-"+prior1.to_s+")") + ' vs ' + team2.name + ((prior2.nil? || prior2 == 0) ? '' : "(-"+prior2.to_s+")") + " (#{time.to_s(:match)})"
   end
 
@@ -152,8 +152,8 @@ class Match < ActiveRecord::Base
       end
     else
       if !cup.is_league?
-        winner.update_attributes(status: true)
-        looser.update_attributes(status: false)
+        winner.update(status: true)
+        looser.update(status: false)
       end
     end
   end
@@ -163,34 +163,34 @@ class Match < ActiveRecord::Base
       if prediction_winners_count == 0
         if cup.is_league?
           predictions.all.each do |prediction|
-            prediction.update_attributes(reward: fee)
+            prediction.update(reward: fee)
           end
         else
-          cup.update_attributes(save_reward: fee*predictions.count)
+          cup.update(save_reward: fee*predictions.count)
           predictions.all.each do |prediction|
-            prediction.update_attributes(reward: 0)
+            prediction.update(reward: 0)
           end
         end
       else
         predictions.all.each do |prediction|
           if prediction.halfwin?
-            prediction.update_attributes(reward: ((fee*predictions.count/2+cup.save_reward)/prediction_winners_count).round + fee/2)  
+            prediction.update(reward: ((fee*predictions.count/2+cup.save_reward)/prediction_winners_count).round + fee/2)  
           elsif prediction.win?
-            prediction.update_attributes(reward: ((fee*predictions.count+cup.save_reward)/prediction_winners_count).round)
+            prediction.update(reward: ((fee*predictions.count+cup.save_reward)/prediction_winners_count).round)
           elsif prediction.halflose?
-            prediction.update_attributes(reward: fee/2)
+            prediction.update(reward: fee/2)
           else
-            prediction.update_attributes(reward: 0)
+            prediction.update(reward: 0)
           end
         end
-        cup.update_attributes(save_reward: 0)
+        cup.update(save_reward: 0)
       end
     else
       predictions.all.each do |prediction|
         if prediction.win?
-          prediction.update_attributes(reward: (cup.reward_percent*fee*valid_users_count/prediction_winners_count).round)
+          prediction.update(reward: (cup.reward_percent*fee*valid_users_count/prediction_winners_count).round)
         else
-          prediction.update_attributes(reward: 0)
+          prediction.update(reward: 0)
         end
       end
     end
@@ -207,9 +207,10 @@ class Match < ActiveRecord::Base
     if updated_at.nil? || updated_at < 1.minutes.ago
       home_team_name = team1.name
       away_team_name = team2.name
-      uri = URI.parse("http://api.football-data.org/v2/competitions/"+cup.result_id.to_s+"/matches?dateFrom="+Date.yesterday.strftime("%Y-%m-%d")+"&dateTo="+Date.tomorrow.strftime("%Y-%m-%d"))
-      #uri = URI.parse("http://api.football-data.org/v2/competitions/"+cup.result_id.to_s+"/matches")
-      http = Net::HTTP.new(uri.host, uri.port).start
+      uri = URI.parse("https://api.football-data.org/v4/competitions/"+cup.result_id.to_s+"/matches?season="+Date.today.strftime("%Y")+"&dateFrom="+Date.yesterday.strftime("%Y-%m-%d")+"&dateTo="+Date.tomorrow.strftime("%Y-%m-%d"))
+      #uri = URI.parse("http://api.football-data.org/v4/competitions/"+cup.result_id.to_s+"/matches")
+      http = Net::HTTP.new(uri.host, uri.port)
+      http.use_ssl = (uri.scheme == 'https')
       request = Net::HTTP::Get.new(uri.request_uri, {"X-Auth-Token"=>ENV['FOOTBALL_API_KEY']})
       resp = http.request(request)
       if resp.kind_of? Net::HTTPSuccess
@@ -217,15 +218,17 @@ class Match < ActiveRecord::Base
         match_results = data['matches'].select{|m| (m['homeTeam']['name'] == home_team_name && m['awayTeam']['name'] == away_team_name)}
         if match_results.count > 0
           last_m = match_results.last
-          ms1 = last_m['score']['fullTime']['homeTeam'].nil? ? 0 : last_m['score']['fullTime']['homeTeam'] - (last_m['score']['extraTime']['homeTeam'].nil? ? 0 : last_m['score']['extraTime']['homeTeam']) - (last_m['score']['penalties']['homeTeam'].nil? ? 0 : last_m['score']['penalties']['homeTeam'])
-          ms2 = last_m['score']['fullTime']['awayTeam'].nil? ? 0 : last_m['score']['fullTime']['awayTeam'] - (last_m['score']['extraTime']['awayTeam'].nil? ? 0 : last_m['score']['extraTime']['awayTeam']) - (last_m['score']['penalties']['awayTeam'].nil? ? 0 : last_m['score']['penalties']['awayTeam'])
-          ss1 = last_m['score']['extraTime']['homeTeam'].nil? ? nil : (ms1 + last_m['score']['extraTime']['homeTeam'])
-          ss2 = last_m['score']['extraTime']['awayTeam'].nil? ? nil : (ms2 + last_m['score']['extraTime']['awayTeam'])
-          if last_m['status'] == 'IN_PLAY'
-            update_attributes(mainscore1: ms1, mainscore2: ms2, subscore1: ss1, subscore2: ss2, penscore1: match_results.last['score']['penalties']['homeTeam'], penscore2: match_results.last['score']['penalties']['awayTeam'], status: false)
+          ms1 = last_m['score']['fullTime']['home'].nil? ? nil : last_m['score']['fullTime']['home'] - (last_m['score'].key?('extraTime') ? (last_m['score']['extraTime']['home'].nil? ? 0 : last_m['score']['extraTime']['home']) : 0) - (last_m['score'].key?('penalties') ? (last_m['score']['penalties']['home'].nil? ? 0 : last_m['score']['penalties']['home']) : 0)
+          ms2 = last_m['score']['fullTime']['away'].nil? ? nil : last_m['score']['fullTime']['away'] - (last_m['score'].key?('extraTime') ? (last_m['score']['extraTime']['away'].nil? ? 0 : last_m['score']['extraTime']['away']) : 0) - (last_m['score'].key?('penalties') ? (last_m['score']['penalties']['away'].nil? ? 0 : last_m['score']['penalties']['away']) : 0)
+          ss1 = last_m['score'].key?('extraTime') ? last_m['score']['extraTime']['home'].nil? ? nil : (ms1 + last_m['score']['extraTime']['home']) : nil
+          ss2 = last_m['score'].key?('extraTime') ? last_m['score']['extraTime']['away'].nil? ? nil : (ms2 + last_m['score']['extraTime']['away']) : nil
+          ps1 = last_m['score'].key?('penalties') ? last_m['score']['penalties']['home'] : nil;
+          ps2 = last_m['score'].key?('penalties') ? last_m['score']['penalties']['away'] : nil;
+          if last_m['status'] == 'IN_PLAY' && !ms1.nil? && !ms2.nil?
+            update(mainscore1: ms1, mainscore2: ms2, subscore1: ss1, subscore2: ss2, penscore1: ps1, penscore2: ps2, status: false)
           end
-          if last_m['status'] == 'FINISHED'
-            update_attributes(mainscore1: ms1, mainscore2: ms2, subscore1: ss1, subscore2: ss2, penscore1: match_results.last['score']['penalties']['homeTeam'], penscore2: match_results.last['score']['penalties']['awayTeam'], status: true)
+          if last_m['status'] == 'FINISHED' && !ms1.nil? && !ms2.nil?
+            update(mainscore1: ms1, mainscore2: ms2, subscore1: ss1, subscore2: ss2, penscore1: ps1, penscore2: ps2, status: true)
           end
         end
       end

@@ -7,10 +7,10 @@
       - @prediction.errors.full_messages.each do |message|
         li = message
 
-  fieldset.col-xs-6
+  /fieldset.col-xs-6
     div.field.form-group
       = f.label :match_id, class: "form-left"
-      = f.collection_select :match_id, predicable_matches(current_user), :id, :name, class: "form-right"
+      = f.collection_select :match_id, predicable_matches(current_user), :id, ->(match) { "#{match.team1&.name} vs #{match.team2&.name}" }, {}, class: "form-right"
     #team1score.field.form-group
       = f.label :mainscore1, id: "team1_name", class: "form-left"
       = f.number_field :mainscore1, class: "form-right"
@@ -24,6 +24,34 @@
     div.field.form-group
       div.actions
         = f.submit 'Submit', class: 'btn btn-primary form-left', data: { disable_with: "Please wait..." }
+
+  fieldset.col-xs-6
+    .form-horizontal.mt-3
+      
+      .form-group.row.mb-3
+        = f.label :match_id, class: "control-label col-xs-4 text-end"
+        .col-xs-8
+          = f.collection_select :match_id, predicable_matches(current_user), :id, ->(match) { "#{match.team1&.name} vs #{match.team2&.name}" }, {}, class: "form-control"
+  
+      #team1score.form-group.row.mb-3
+        = f.label :mainscore1, id: "team1_name", class: "control-label col-xs-4 text-end"
+        .col-xs-8
+          = f.number_field :mainscore1, class: "form-control"
+  
+      #team2score.form-group.row.mb-3
+        = f.label :mainscore2, id: "team2_name", class: "control-label col-xs-4 text-end"
+        .col-xs-8
+          = f.number_field :mainscore2, class: "form-control"
+  
+      #teamselected.form-group.row.mb-3
+        label.control-label.col-xs-4.text-end for="teamoption" Choose team
+        .col-xs-8
+          select id="teamoption" class="form-control"
+  
+      .form-group.row.mt-4
+        .col-xs-8.col-xs-offset-4
+          = f.submit 'Submit', class: 'btn btn-primary', data: { disable_with: "Please wait..." }
+
 
 javascript:
   var predicable_matches = #{{predicable_matches(current_user).map{|m| {"id"=>m.id, "team1_id"=>m.team1_id, "team2_id"=>m.team2_id, "knockout"=>m.knockout}}.to_json}};

@@ -1,5 +1,27 @@
 h1 New Cup
 
+div
+  h2 Free cup list
+  - if @free_cup_list.blank?
+    p.text-muted.text-center.my-3 No available cups found.
+  - else
+    .table-responsive.mt-3
+      table.table.table-hover.align-middle
+        thead.table-light
+          tr
+            th scope="col" style="width: 15%" ID
+            th scope="col" Cup Name
+            th scope="col" style="width: 20%" Status
+        tbody
+          - @free_cup_list.each do |c|
+            tr id="free-cup-#{c[:id]}"
+              td.text-secondary.fw-bold = c[:id]
+              td.fw-medium = c[:name]
+              td
+                span.badge.bg-success Available
+div
+  h2 Cup Detail
+
 = render 'form'
 
 div.col-xs-12

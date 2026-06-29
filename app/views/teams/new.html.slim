@@ -1,5 +1,33 @@
 h1 New Team
 
+div
+  h2 Avaiable team list
+  - if @cup.available_team_list.blank?
+    p.text-muted.text-center.my-4 No available teams found.  
+  - else
+    .table-responsive.mt-4
+      table.table.table-hover.align-middle
+        thead.table-light
+          tr
+            th scope="col" style="width: 15%" ID
+            th scope="col" Team Name
+            th scope="col" Coach
+            th scope="col" style="width: 20%" Status
+            th scope="col" Actions
+        tbody
+          - @cup.available_team_list.each do |t|
+            tr id="avai-team-#{t[:id]}"
+              td.text-secondary.fw-bold = t[:id]
+              td.fw-medium = t[:name]
+              td.fw-medium = t[:coach]
+              td class="col-xs-1 #{t[:status] ? "danger": "success"}" = t[:status] ? "Added" : "Available"
+              td
+                - unless t[:status]
+                  = button_to "Add Team", teams_path(cup_id: @cup.id), method: :post, params: { team: { name: t[:name], coach: t[:coach], status: true, cup_group: "A"} }, class: "btn btn-sm btn-primary"
+
+div
+  h2 Team Detail
+
 = render 'form'
 
 div.col-xs-12

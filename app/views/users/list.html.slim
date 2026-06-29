@@ -2,22 +2,29 @@
   h2 Listing Users
 
   div.panel.panel-default
-    table.table.table-cond:wensed
+    table.table.table-condensed
       thead
         tr
           th.col-xs-1 #
           th.col-xs-3 Email
-          th.col-xs-1 colspan="3"
+          th.col-xs-2 Created Day
+          th.col-xs-4.text-right Actions
 
-  div.div-table-content
+  div.div-table-content style="max-height: 500px; overflow-y: auto; border-bottom: 1px solid #ddd;"
     table.table.table-hover.table-condensed
       tbody
         - @users.each_with_index do |u, index|
           tr
             td.col-xs-1 = index+1
             td.col-xs-3 = u.email
-            td.col-xs-1.text-right
-              = link_to 'Reset', user_reset_pass_path(u_id: u.id), data: { confirm: 'Are you sure?' }, class: 'btn btn-xs btn-danger btn-one-col'
+            td.col-xs-2 = u.created_at.strftime("%Y-%m-%d")
+            td.col-xs-4.text-right
+              div style="display: flex; gap: 5px; justify-content: flex-end; align-items: center;"
+                = link_to 'Reset', user_reset_pass_path(u_id: u.id), data: { confirm: 'Are you sure?' }, class: 'btn btn-xs btn-warning'
+
+                - if can?(:destroy_without_predictions, u)
+                  = button_to destroy_without_predictions_user_path(id: u.id, cup_id: params[:cup_id]), method: :delete, class: "btn btn-xs btn-danger", form: { style: "display: inline; margin: 0;" }, data: { confirm: "Are you sure you want to delete this user?" }
+                    span Delete
 
 h2 Listing Active Users For #{@cup.name}
 
@@ -31,7 +38,7 @@ div.panel.panel-default
         th.col-xs-1 Score
         th.col-xs-1 colspan="3"
 
-div.div-table-content
+div.div-table-content style="max-height: 500px; overflow-y: auto; border-bottom: 1px solid #ddd;"
   table.table.table-hover.table-condensed
     tbody
       - @cup.active_users.each_with_index do |u, index|
