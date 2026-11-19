@@ -7,7 +7,7 @@ table.table
     th.col-xs-7 
   tr
     td Played match (P)
-    td= @team.played_matches.count
+    td= @team.played_rows.size
   tr
     td Won match (W)
     td= @team.won_matches.count
@@ -45,14 +45,15 @@ table.table
     th.col-xs-2 Match
     th.col-xs-2 Result
     th.col-xs-2 Your prediction
-  - @team.matches.each do |match|
+  - @team_matches.each do |match|
+    - mine = @my_predictions[match.id]
     tr
       td = render "shared/match_name", match: match
       td = match.fullscores
       - if match.knockout?
-        td = p = match.prediction_of(current_user); p.winner_team.name if p.present?
+        td = mine&.winner_team&.name
       - else
-        td = p = match.prediction_of(current_user); p.mainscores if p.present?
+        td = mine&.mainscores
 hr
 
 - if can?(:edit, @team)

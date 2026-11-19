@@ -4,18 +4,15 @@ class UsersController < ApplicationController
   def index
     @cup = Cup.find(params[:cup_id])
     @stage = params[:stage]
-    admin_ids = Score.where(user_id: User.where(admin: true).ids).ids
-    if @stage == 'group'
-      inactive_ids = Score.where(user_id: User.select{|u| u.predictions_of_stage(@cup, false).count == 0}.map{|u| u.id}).ids
-      ids = Score.where(cup_id: @cup.id).ids - admin_ids - inactive_ids
-      @userscores = Score.where(id: ids).order('score desc nulls last, reward desc')
-      @groupmatches = @cup.matches.where(knockout: false)
-    end
-    if @stage == 'knockout'
-      inactive_ids = Score.where(user_id: User.select{|u| u.predictions_of_stage(@cup, true).count == 0}.map{|u| u.id}).ids
-      ids = Score.where(cup_id: @cup.id).ids - admin_ids - inactive_ids
-      @userknockoutrewards = Score.where(id: ids).sort_by{ |u| [-u.knockout_profit] }
-      @knockoutmatches = @cup.matches.where(knockout: true)
+    case @stage
+    when 'group'
+      @userscores = stage_scores(false).includes(:user).order('score desc nulls last, reward desc').to_a
+      @groupmatches = closed_matches(false)
+      @predictions = predictions_by_cell(@groupmatches, @userscores)
+    when 'knockout'
+      @userknockoutrewards = stage_scores(true).includes(:user).sort_by { |s| -s.knockout_profit }
+      @knockoutmatches = closed_matches(true)
+      @predictions = predictions_by_cell(@knockoutmatches, @userknockoutrewards)
     end
   end
 
@@ -37,44 +34,33 @@ class UsersController < ApplicationController
   def list
     @users = User.order(created_at: :desc)
     @cup = Cup.find(params[:cup_id])
+    @active_users = @cup.active_users.to_a
+    @prediction_counts = Prediction.where(cup_id: @cup.id).group(:user_id).count
+    @user_scores = Score.where(cup_id: @cup.id).pluck(:user_id, :score).to_h
   end
 
   def reset_pass
-    @cup = Cup.find(params[:cup_id])
-    @u = User.find(params[:u_id])
-    if @u.nil?
-      if @cup.nil?
-        redirect_to users_list_url, notice: 'User not found!'
-      else
-        redirect_to users_list_url(cup_id: @cup.id), notice: 'User not found!'
-      end
+    authorize! :reset_pass, User
+    user = User.find(params[:u_id])
+    password = SecureRandom.alphanumeric(10)
+    if user.update(password: password, password_confirmation: password)
+      redirect_to users_list_url(cup_id: params[:cup_id]),
+        notice: "Password of #{user.name} reset to: #{password}"
     else
-      require 'bcrypt'
-      @u.update(encrypted_password: BCrypt::Password.create("12345678"))
-      if @cup.nil?
-        redirect_to users_list_url, notice: 'Password reset done!'
-      else
-        redirect_to users_list_url(cup_id: @cup.id), notice: 'Password reset done!'
-      end
+      redirect_to users_list_url(cup_id: params[:cup_id]), alert: 'Password reset failed!'
     end
   end
 
   def remove_cup
-    @cup = Cup.find(params[:cup_id])
-    @u = User.find(params[:u_id])
-    if @u.nil?
-      redirect_to users_list_url(cup_id: @cup.id), notice: 'User not found!'
-    else
-      @u.predictions_of_stage(@cup, false).each do |p|
-        p.destroy
-      end
-      redirect_to users_list_url(cup_id: @cup.id), notice: 'User removed from the Cup!'
-    end
+    authorize! :remove_cup, User
+    cup = Cup.find(params[:cup_id])
+    User.find(params[:u_id]).predictions_of_stage(cup, false).each(&:destroy)
+    redirect_to users_list_url(cup_id: cup.id), notice: 'User removed from the Cup!'
   end
 
   def destroy_without_predictions
     @user = User.find(params[:id])
-    
+
     authorize! :destroy_without_predictions, @user
 
     if @user.destroy
@@ -94,6 +80,24 @@ class UsersController < ApplicationController
   end
 
   private
+
+  def closed_matches(knockout)
+    @cup.matches.where(knockout: knockout, status: true).includes(:team1, :team2).to_a.reverse
+  end
+
+  def predictions_by_cell(matches, scores)
+    Prediction.where(match_id: matches.map(&:id), user_id: scores.map(&:user_id))
+              .includes(match: [:team1, :team2])
+              .index_by { |p| [p.match_id, p.user_id] }
+  end
+
+  def stage_scores(knockout)
+    active_ids = Prediction.joins(:match).unscope(:order)
+                           .where(cup_id: @cup.id, matches: { knockout: knockout, status: true })
+                           .distinct.pluck(:user_id)
+    admin_ids = User.where(admin: true).select(:id)
+    Score.where(cup_id: @cup.id, user_id: active_ids).where.not(user_id: admin_ids)
+  end
 
   def user_params
     params.require(:user).permit(

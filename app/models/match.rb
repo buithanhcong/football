@@ -1,7 +1,7 @@
 class Match < ActiveRecord::Base
   belongs_to :team1, class_name: "Team", foreign_key: "team1_id"
   belongs_to :team2, class_name: "Team", foreign_key: "team2_id"
-  has_many :predictions
+  has_many :predictions, inverse_of: :match
   belongs_to :cup
 
   default_scope { order(:time) }
@@ -13,7 +13,7 @@ class Match < ActiveRecord::Base
   end
 
   def name(*_args)
-    team1.name + ((prior1.nil? || prior1== 0) ? '' : "(-"+prior1.to_s+")") + ' vs ' + team2.name + ((prior2.nil? || prior2 == 0) ? '' : "(-"+prior2.to_s+")") + " (#{time.to_s(:match)})"
+    team1.name + ((prior1.nil? || prior1== 0) ? '' : "(-"+prior1.to_s+")") + ' vs ' + team2.name + ((prior2.nil? || prior2 == 0) ? '' : "(-"+prior2.to_s+")") + " (#{time.to_fs(:match)})"
   end
 
   def short_name
@@ -65,41 +65,19 @@ class Match < ActiveRecord::Base
   end
 
   def winner
-    if closed?
-      if !subscore1.nil? && !subscore2.nil? && !penscore1.nil? && !penscore2.nil?
-        subscore1 > subscore2 ? team1 :
-        subscore1 < subscore2 ? team2 :
-        penscore1 > penscore2 ? team1 :
-        penscore1 < penscore2 ? team2 : nil
-      else
-        if !subscore1.nil? && !subscore2.nil?
-          subscore1 > subscore2 ? team1 :
-          subscore1 < subscore2 ? team2 : nil
-        else
-          mainscore1 > mainscore2 ? team1 :
-          mainscore1 < mainscore2 ? team2 : nil
-        end
-      end
-    end
+    team_by_id(winner_id)
   end
 
-  def looser
-    if closed?
-      if !subscore1.nil? && !subscore2.nil? && !penscore1.nil? && !penscore2.nil?
-        subscore1 > subscore2 ? team2 :
-        subscore1 < subscore2 ? team1 :
-        penscore1 > penscore2 ? team2 :
-        penscore1 < penscore2 ? team1 : nil
-      else
-        if !subscore1.nil? && !subscore2.nil?
-          subscore1 > subscore2 ? team2 :
-          subscore1 < subscore2 ? team1 : nil
-        else
-          mainscore1 > mainscore2 ? team2 :
-          mainscore1 < mainscore2 ? team1 : nil
-        end
-      end
-    end
+  def loser
+    team_by_id(loser_id)
+  end
+
+  def winner_id
+    closed? ? decisive_ids&.first : nil
+  end
+
+  def loser_id
+    closed? ? decisive_ids&.last : nil
   end
 
   def prediction_winners
@@ -115,10 +93,10 @@ class Match < ActiveRecord::Base
   end
 
   def prediction_winners_names
-    prediction_winners.map(&:name).join(", ")
+    predictions.select(&:win?).map { |p| p.user.name }.join(", ")
   end
 
-  def equal?
+  def draw?
     closed? && (mainscore1 == mainscore2) 
   end
 
@@ -141,102 +119,69 @@ class Match < ActiveRecord::Base
   end
 
   def update_teams_score
-    if !knockout?
-      team1.update_score
-      team2.update_score
-      if team1.played_matches.count == 3 && !cup.is_league?
-        team1.update_status
-      end
-      if team2.played_matches.count == 3 && !cup.is_league?
-        team2.update_status
+    if knockout?
+      unless cup.is_league?
+        winner&.update(status: true)
+        loser&.update(status: false)
       end
     else
-      if !cup.is_league?
-        winner.update(status: true)
-        looser.update(status: false)
+      [team1, team2].each do |team|
+        team.update_score
+        team.update_status if team.played_matches.count == 3 && !cup.is_league?
       end
     end
   end
 
   def update_predictions_reward
-    if knockout?
-      if prediction_winners_count == 0
-        if cup.is_league?
-          predictions.all.each do |prediction|
-            prediction.update(reward: fee)
-          end
-        else
-          cup.update(save_reward: fee*predictions.count)
-          predictions.all.each do |prediction|
-            prediction.update(reward: 0)
-          end
-        end
-      else
-        predictions.all.each do |prediction|
-          if prediction.halfwin?
-            prediction.update(reward: ((fee*predictions.count/2+cup.save_reward)/prediction_winners_count).round + fee/2)  
-          elsif prediction.win?
-            prediction.update(reward: ((fee*predictions.count+cup.save_reward)/prediction_winners_count).round)
-          elsif prediction.halflose?
-            prediction.update(reward: fee/2)
-          else
-            prediction.update(reward: 0)
-          end
-        end
-        cup.update(save_reward: 0)
-      end
-    else
-      predictions.all.each do |prediction|
-        if prediction.win?
-          prediction.update(reward: (cup.reward_percent*fee*valid_users_count/prediction_winners_count).round)
-        else
-          prediction.update(reward: 0)
-        end
-      end
-    end
+    knockout? ? reward_knockout_predictions : reward_group_predictions
   end
 
   def update_users_score_reward
-    Score.all.each do |score|
+    Score.where(cup_id: cup_id).find_each do |score|
       score.update_score_reward
     end
   end
 
+  def self.result_window
+    { season: Date.today.year,
+      dateFrom: Date.yesterday.strftime('%Y-%m-%d'),
+      dateTo: Date.tomorrow.strftime('%Y-%m-%d') }
+  end
+
+  def refreshable?
+    updated_at.nil? || updated_at < 1.minute.ago
+  end
+
   def update_result
-    require 'net/http'
-    if updated_at.nil? || updated_at < 1.minutes.ago
-      home_team_name = team1.name
-      away_team_name = team2.name
-      uri = URI.parse("https://api.football-data.org/v4/competitions/"+cup.result_id.to_s+"/matches?season="+Date.today.strftime("%Y")+"&dateFrom="+Date.yesterday.strftime("%Y-%m-%d")+"&dateTo="+Date.tomorrow.strftime("%Y-%m-%d"))
-      #uri = URI.parse("http://api.football-data.org/v4/competitions/"+cup.result_id.to_s+"/matches")
-      http = Net::HTTP.new(uri.host, uri.port)
-      http.use_ssl = (uri.scheme == 'https')
-      request = Net::HTTP::Get.new(uri.request_uri, {"X-Auth-Token"=>ENV['FOOTBALL_API_KEY']})
-      resp = http.request(request)
-      if resp.kind_of? Net::HTTPSuccess
-        data = JSON.parse(resp.body)
-        match_results = data['matches'].select{|m| (m['homeTeam']['name'] == home_team_name && m['awayTeam']['name'] == away_team_name)}
-        if match_results.count > 0
-          last_m = match_results.last
-          ms1 = last_m['score']['fullTime']['home'].nil? ? nil : last_m['score']['fullTime']['home'] - (last_m['score'].key?('extraTime') ? (last_m['score']['extraTime']['home'].nil? ? 0 : last_m['score']['extraTime']['home']) : 0) - (last_m['score'].key?('penalties') ? (last_m['score']['penalties']['home'].nil? ? 0 : last_m['score']['penalties']['home']) : 0)
-          ms2 = last_m['score']['fullTime']['away'].nil? ? nil : last_m['score']['fullTime']['away'] - (last_m['score'].key?('extraTime') ? (last_m['score']['extraTime']['away'].nil? ? 0 : last_m['score']['extraTime']['away']) : 0) - (last_m['score'].key?('penalties') ? (last_m['score']['penalties']['away'].nil? ? 0 : last_m['score']['penalties']['away']) : 0)
-          ss1 = last_m['score'].key?('extraTime') ? last_m['score']['extraTime']['home'].nil? ? nil : (ms1 + last_m['score']['extraTime']['home']) : nil
-          ss2 = last_m['score'].key?('extraTime') ? last_m['score']['extraTime']['away'].nil? ? nil : (ms2 + last_m['score']['extraTime']['away']) : nil
-          ps1 = last_m['score'].key?('penalties') ? last_m['score']['penalties']['home'] : nil;
-          ps2 = last_m['score'].key?('penalties') ? last_m['score']['penalties']['away'] : nil;
-          if last_m['status'] == 'IN_PLAY' && !ms1.nil? && !ms2.nil?
-            update(mainscore1: ms1, mainscore2: ms2, subscore1: ss1, subscore2: ss2, penscore1: ps1, penscore2: ps2, status: false)
-          end
-          if last_m['status'] == 'FINISHED' && !ms1.nil? && !ms2.nil?
-            update(mainscore1: ms1, mainscore2: ms2, subscore1: ss1, subscore2: ss2, penscore1: ps1, penscore2: ps2, status: true)
-          end
-        end
-      end
+    return unless refreshable?
+    apply_api_data(FootballData.get("competitions/#{cup.result_id}/matches", self.class.result_window))
+  end
+
+  def apply_api_data(data)
+    return if data.nil? || data['matches'].nil?
+    api_match = data['matches'].reverse.find do |m|
+      m.dig('homeTeam', 'name') == team1.name && m.dig('awayTeam', 'name') == team2.name
+    end
+    return if api_match.nil?
+    result = MatchResult.new(api_match)
+    if result.finished?
+      update(result.attributes.merge(status: true))
+    elsif result.in_play?
+      update(result.attributes.merge(status: false))
+    end
+  end
+
+  def recalculate_rewards
+    transaction do
+      update_predictions_reward
+      update_users_score_reward
     end
   end
 
   def valid_users
-    cup.active_users.select{|u| !u.predictions_of_cup(cup).order(match_id: :asc).first.match.knockout?}
+    first_match_by_user = Prediction.where(cup_id: cup_id).group(:user_id).minimum(:match_id)
+    knockout_ids = Match.unscoped.where(id: first_match_by_user.values.uniq, knockout: true).pluck(:id)
+    User.where(id: first_match_by_user.reject { |_, match_id| knockout_ids.include?(match_id) }.keys)
   end
 
   def valid_users_count
@@ -253,6 +198,67 @@ class Match < ActiveRecord::Base
       4
     else
       5
+    end
+  end
+
+  private
+
+  def reward_knockout_predictions
+    list = predictions.to_a
+    fee = self.fee.to_i
+    pot = fee * list.size
+    winners = list.count(&:win?)
+    if winners.zero?
+      if cup.is_league?
+        list.each { |p| p.update(reward: fee) }
+      else
+        cup.update(save_reward: pot)
+        list.each { |p| p.update(reward: 0) }
+      end
+      return
+    end
+    saved = cup.save_reward.to_i
+    list.each do |p|
+      reward =
+        if p.halfwin?
+          ((pot / 2 + saved) / winners).round + fee / 2
+        elsif p.win?
+          ((pot + saved) / winners).round
+        elsif p.halflose?
+          fee / 2
+        else
+          0
+        end
+      p.update(reward: reward)
+    end
+    cup.update(save_reward: 0)
+  end
+
+  def reward_group_predictions
+    winning, losing = predictions.to_a.partition(&:win?)
+    unless winning.empty?
+      share = (cup.reward_percent.to_f * fee.to_i * valid_users_count / prediction_winners_count).round
+      winning.each { |p| p.update(reward: share) }
+    end
+    losing.each { |p| p.update(reward: 0) }
+  end
+
+  def team_by_id(team_id)
+    return if team_id.nil?
+    team_id == team1_id ? team1 : team2
+  end
+
+  def decisive_ids
+    order =
+      if [subscore1, subscore2].none?(&:nil?)
+        by_sub = subscore1 <=> subscore2
+        by_sub.zero? && [penscore1, penscore2].none?(&:nil?) ? penscore1 <=> penscore2 : by_sub
+      else
+        mainscore1 <=> mainscore2
+      end
+    case order
+    when 1 then [team1_id, team2_id]
+    when -1 then [team2_id, team1_id]
     end
   end
 end

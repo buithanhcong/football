@@ -1,6 +1,6 @@
 h2 Detail result for each match
 - if @stage == 'group'  
-  - @layout_width = "#{400+200*@userscores.count}px;"
+  - @layout_width = "#{400+200*@userscores.size}px;"
   table.table.table-hover.fixed-header width=@layout_width
     thead
       th.px300 Match
@@ -8,13 +8,13 @@ h2 Detail result for each match
       - @userscores.each do |userscore|
         th.px200 =userscore.user.name
     tbody
-      - @groupmatches.all.reverse.each do |match|
+      - @groupmatches.each do |match|
         - if match.closed?
           tr
             td.px300 =render "shared/match_name", match: match
             td.px100 =match.mainscores
             - @userscores.each do |userscore|
-              - p = Prediction.find_by(match: match, user: userscore.user)
+              - p = @predictions[[match.id, userscore.user_id]]
               - if p.present?
                 = render "shared/prediction_score", prediction: p, tdclass: "px200"
               - else
@@ -28,9 +28,9 @@ h2 Detail result for each match
           span  | 
           =userscore.reward
   - if can?(:edit, @cup)
-    = link_to 'Re-calculate Result', calc_grp_score_cup_path(@cup), data: { confirm: 'Are you sure?' }, class: "btn btn-primary"
+    = link_to 'Re-calculate Result', calc_grp_score_cup_path(@cup), method: :post, data: { confirm: 'Are you sure?' }, class: "btn btn-primary"
 - if @stage == 'knockout'
-  - @layout_width = "#{400+200*@userknockoutrewards.count}px;"
+  - @layout_width = "#{400+200*@userknockoutrewards.size}px;"
   table.table.table-hover.fixed-header width=@layout_width
     thead
       th.px300 Match
@@ -38,13 +38,13 @@ h2 Detail result for each match
       - @userknockoutrewards.each do |u|
         th.px200 =u.user.name
     tbody
-      - @knockoutmatches.all.reverse.each do |match|
+      - @knockoutmatches.each do |match|
         - if match.closed?
           tr
             td.px300 =render "shared/match_name", match: match
             td.px100 =match.fullscores
             - @userknockoutrewards.each do |u|
-              - p = Prediction.find_by(match: match, user: u.user)
+              - p = @predictions[[match.id, u.user_id]]
               - if p.present?
                 = render "shared/prediction_score", prediction: p, tdclass: "px200"
               - else

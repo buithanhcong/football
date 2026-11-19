@@ -1,4 +1,5 @@
-td class=((defined?(tdclass) ? tdclass : "col-xs-1") + " " + (prediction.score==1? "success" : (prediction.score==2? "danger"  : "") )) 
+- points = prediction.score
+td class=((defined?(tdclass) ? tdclass : "col-xs-1") + " " + (points == 1 ? "success" : (points == 2 ? "danger" : "")))
   =prediction.match.knockout? ? prediction.winner_team.name : prediction.mainscores
   span  | 
   =prediction.reward

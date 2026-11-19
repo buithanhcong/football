@@ -15,6 +15,7 @@ div
             th scope="col" style="width: 20%" Status
             th scope="col" Actions
         tbody
+          - teams_by_name = @cup.teams.index_by(&:name)
           - @cup.available_match_list.each do |t|
             tr id="avai-match-#{t[:id]}"
               td.text-secondary.fw-bold = t[:id]
@@ -24,8 +25,8 @@ div
               td
                 - unless t[:status]
                   - teams = t[:name].split(" vs ")
-                  - team1 = @cup.teams.find_by(name: teams[0])
-                  - team2 = @cup.teams.find_by(name: teams[1])
+                  - team1 = teams_by_name[teams[0]]
+                  - team2 = teams_by_name[teams[1]]
                   - if team1 && team2
                     = button_to "Add Match", matches_path(cup_id: @cup.id), method: :post, params: { match: { team1_id: team1.id, team2_id: team2.id, time: t[:date], status: false, knockout: false } }, class: "btn btn-sm btn-primary"
                   - else

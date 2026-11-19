@@ -26,28 +26,26 @@ table.table
       td= @match.priorities
   tr
     td Number of Prediction(s)
-    td= @match.predictions.count
+    td= @match.predictions.size
   tr
     td Predictions winner(s)
     td= @match.prediction_winners_names
 
-- @predictions = @match.started? ? @match.predictions : @match.predictions.where(user: current_user)
-- if @predictions.count > 0
+- mine = @match.predictions.find { |p| p.user_id == current_user.id }
+- visible = @match.started? ? @match.predictions.to_a : [mine].compact
+- if visible.any?
   h2 Predictions
-  = render "shared/match_prediction", predictions: @predictions
+  = render "shared/match_prediction", predictions: visible
 
 hr
 
-- @predictions = @match.predictions.where(user: current_user)
-- if @predictions.count > 0
-  - @prediction = @predictions.first
-  - if can?(:edit, @prediction)
-    = link_to 'Edit Prediction', edit_prediction_path(@prediction), class: "btn btn-primary"
+- if mine
+  - if can?(:edit, mine)
+    = link_to 'Edit Prediction', edit_prediction_path(mine), class: "btn btn-primary"
     | |
-- if @predictions.count == 0
-  - if can?(:create, Prediction)
-    = link_to 'New Prediction', new_prediction_path(cup_id: @match.cup_id), class: 'btn btn-primary'
-    | |
+- elsif can?(:create, Prediction)
+  = link_to 'New Prediction', new_prediction_path(cup_id: @match.cup_id), class: 'btn btn-primary'
+  | |
 - if can?(:create, Match)
   = link_to 'New Match', new_match_path(cup_id: @match.cup_id), class: "btn btn-primary"
   | |

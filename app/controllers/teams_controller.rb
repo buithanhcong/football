@@ -4,11 +4,17 @@ class TeamsController < ApplicationController
   before_action :set_cup, only: [:index, :create, :new]
 
   def index
-    @teams = @cup.teams.sort_by{ |t| [t.cup_group, -t.score, t.goal_against-t.goal_for, -t.goal_for] }
+    teams = @cup.teams.to_a
+    played = Match.where(cup_id: @cup.id, status: true, knockout: false).to_a
+    teams.each { |t| t.played_rows = played.select { |m| m.team1_id == t.id || m.team2_id == t.id } }
+    @teams = teams.sort_by { |t| [t.cup_group.to_s, -t.score.to_i, t.goal_against - t.goal_for, -t.goal_for] }
   end
 
   def show
     @cup = @team.cup
+    @team_matches = @team.matches.includes(:team1, :team2).to_a
+    @team.played_rows = @team_matches.select { |m| m.status && m.knockout == false }
+    @my_predictions = current_user.predictions.where(cup_id: @cup.id).includes(match: [:team1, :team2]).index_by(&:match_id)
   end
 
   def new

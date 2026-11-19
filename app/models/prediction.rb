@@ -45,23 +45,11 @@ class Prediction < ActiveRecord::Base
   end
 
   def win?
-    if match.knockout?
-      if match.special_final?
-        closed? && (
-        ((match.mainscore1 - match.prior1 > match.mainscore2 - match.prior2) && (mainscore1 > mainscore2)) ||
-        ((match.mainscore1 - match.prior1 < match.mainscore2 - match.prior2) && (mainscore1 < mainscore2)) ||
-        (!match.subscore1.nil? && !match.subscore2.nil? && (match.subscore1 - match.prior1 > match.subscore2 - match.prior2) && (mainscore1 > mainscore2)) ||
-        (!match.subscore1.nil? && !match.subscore2.nil? && (match.subscore1 - match.prior1 < match.subscore2 - match.prior2) && (mainscore1 < mainscore2)) ||
-        (!match.penscore1.nil? && !match.penscore2.nil? && (match.penscore1 - match.prior1 > match.penscore2 - match.prior2) && (mainscore1 > mainscore2)) ||
-        (!match.penscore1.nil? && !match.penscore2.nil? && (match.penscore1 - match.prior1 < match.penscore2 - match.prior2) && (mainscore1 < mainscore2)))
-      else
-        closed? && (
-        ((match.mainscore1 - match.prior1 > match.mainscore2 - match.prior2) && (mainscore1 > mainscore2)) ||
-        ((match.mainscore1 - match.prior1 < match.mainscore2 - match.prior2) && (mainscore1 < mainscore2)))
-      end
-    else
-      closed? && ((match.mainscore1 == mainscore1) && (match.mainscore2 == mainscore2))
-    end
+    return false unless closed?
+    return match.mainscore1 == mainscore1 && match.mainscore2 == mainscore2 unless match.knockout?
+    predicted = mainscore1 <=> mainscore2
+    return false if predicted.zero?
+    handicap_results.any? { |outcome| outcome == predicted }
   end
 
   def subwin?
@@ -89,5 +77,17 @@ class Prediction < ActiveRecord::Base
 
   def winner_team
     (mainscore1 > mainscore2) ? match.team1 : ((mainscore1 < mainscore2) ? match.team2 : nil)
+  end
+
+  private
+
+  def handicap_results
+    pairs = [[match.mainscore1, match.mainscore2]]
+    if match.special_final?
+      pairs << [match.subscore1, match.subscore2]
+      pairs << [match.penscore1, match.penscore2]
+    end
+    pairs.reject { |a, b| a.nil? || b.nil? }
+         .map { |a, b| (a - match.prior1.to_f) <=> (b - match.prior2.to_f) }
   end
 end

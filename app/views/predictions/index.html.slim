@@ -1,8 +1,8 @@
 h1 Listing Predictions
 
-- if @predictions.count == 0
+- if @predictions.empty?
   p You don't have any prediction yet !!!
--else
+- else
   div.panel.panel-default
     table.table.table-condensed
       thead
@@ -32,11 +32,12 @@ h1 Listing Predictions
             td.col-xs-1.text-right
               - if can?(:destroy, prediction)
                 = link_to 'Destroy', delete_prediction_path(prediction), method: :delete, data: { confirm: 'Are you sure?' }, class: 'btn btn-danger btn-xs btn-one-col'
-        td
-        td
-        td
-        td
-        td.btn-danger = current_user.get_score(@cup)
+        tr
+          td
+          td
+          td
+          td
+          td.btn-danger = current_user.get_score(@cup)
 
 div.col-xs-12
   hr

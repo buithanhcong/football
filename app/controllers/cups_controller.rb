@@ -8,11 +8,12 @@ class CupsController < ApplicationController
   end
 
   def show
-    if @cup.result_id != 0
+    if @cup.result_id.to_i != 0
       @cup.update_result
     end
-    @nextmatches = @cup.matches.where("time >= ?", Time.now).order(time: :asc).first(5)
-    @prematches = @cup.matches.where("time <= ?", Time.now).reorder(time: :desc).first(5)
+    @nextmatches = @cup.matches.where("time >= ?", Time.current).includes(:team1, :team2, :predictions).reorder(time: :asc).limit(5).to_a
+    @prematches = @cup.matches.where("time <= ?", Time.current).includes(:team1, :team2, predictions: :user).reorder(time: :desc).limit(5).to_a
+    @my_predictions = my_predictions
   end
 
   def new
@@ -64,22 +65,18 @@ class CupsController < ApplicationController
     redirect_to leader_board_url(stage: 'group')
   end
 
-  def set_free_cup_list
-    require 'net/http'
-    uri = URI.parse("https://api.football-data.org/v4/competitions/")
-    http = Net::HTTP.new(uri.host, uri.port)
-    http.use_ssl = (uri.scheme == 'https')
-    request = Net::HTTP::Get.new(uri.request_uri, {"X-Auth-Token"=>ENV['FOOTBALL_API_KEY']})
-    resp = http.request(request)
-    if resp.kind_of? Net::HTTPSuccess
-      data = JSON.parse(resp.body)
-      @free_cup_list = data['competitions'].select{|c| (c['plan'] == 'TIER_ONE')}.map { |c| {id: c['id'], name: c['name'] } }
-    else
-      @free_cup_list = []
-    end
-  end
-
   private
+    def my_predictions
+      current_user.predictions.where(cup_id: @cup.id).includes(match: [:team1, :team2]).index_by(&:match_id)
+    end
+
+    def set_free_cup_list
+      data = FootballData.get('competitions')
+      @free_cup_list = (data ? data['competitions'] : []).
+        select { |c| c['plan'] == 'TIER_ONE' }.
+        map { |c| { id: c['id'], name: c['name'] } }
+    end
+
     def set_cup
       @cup = Cup.find(params[:cup_id])
     end

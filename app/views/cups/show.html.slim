@@ -24,7 +24,7 @@ hr
 
 - if @nextmatches.count > 0
   div.panel.panel-default
-    table.table.table-cond:wensed
+    table.table.table-condensed
       thead
         tr
           th.col-xs-3 Next Match(es)
@@ -39,17 +39,17 @@ hr
             td.col-xs-3 = render "shared/match_name", match: match
             td.col-xs-3 = match.time.to_fs(:match)
             td.col-xs-3 = match.priorities
-            - if match.prediction_of(@current_user)
+            - if @my_predictions[match.id]
               - if match.knockout?
-                td.col-xs-3 = match.prediction_of(@current_user).winner_team.name
+                td.col-xs-3 = @my_predictions[match.id].winner_team.name
               - else
-                td.col-xs-3 = match.prediction_of(@current_user).mainscores
+                td.col-xs-3 = @my_predictions[match.id].mainscores
             - else
               td.col-xs-3 Not available
 
 - if @prematches.count > 0
   div.panel.panel-default
-    table.table.table-cond:wensed
+    table.table.table-condensed
       thead
         tr
           th.col-xs-2 Previous Match(es)
@@ -73,4 +73,4 @@ hr
   |  | 
 = link_to 'Back', cups_path, class: "btn btn-primary"
 |  | 
-= link_to 'Randomize Group Stage Predictions', rand_grp_cup_path(@cup), data: { confirm: 'Are you sure?' },class: "btn btn-primary"
+= link_to 'Randomize Group Stage Predictions', rand_grp_cup_path(@cup), method: :post, data: { confirm: 'Are you sure?' },class: "btn btn-primary"

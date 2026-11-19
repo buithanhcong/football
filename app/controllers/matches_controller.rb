@@ -4,10 +4,11 @@ class MatchesController < ApplicationController
   before_action :set_cup, only: [:index, :create, :new]
 
   def index
-    if @cup.result_id != 0
+    if @cup.result_id.to_i != 0
       @cup.update_result
     end
-    @matches = @cup.matches.order(:time)
+    @matches = @cup.matches.includes(:team1, :team2, predictions: :user).order(:time)
+    @my_predictions = current_user.predictions.where(cup_id: @cup.id).includes(match: [:team1, :team2]).index_by(&:match_id)
   end
 
   def show
@@ -52,14 +53,13 @@ class MatchesController < ApplicationController
   end
 
   def cal_scr
-    @match.update_predictions_reward
-    @match.update_users_score_reward
+    @match.recalculate_rewards
     redirect_to matches_path(cup_id: @match.cup_id), notice: 'Match was successfully updated.'
   end
 
   private
     def set_match
-      @match = Match.find(params[:match_id])
+      @match = Match.includes(predictions: :user).find(params[:match_id])
     end
 
     def set_cup

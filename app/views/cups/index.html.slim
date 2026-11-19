@@ -4,10 +4,11 @@ div.panel.panel-default
     thead
       tr
         th.col-xs-1 #
-        th.col-xs-5 Cup
+        th.col-xs-4 Cup
         th.col-xs-1 Logo
-        th.col-xs-3 Start Time
-        th.col-xs-3 End Time
+        th.col-xs-2 Start Time
+        th.col-xs-2 End Time
+        th.col-xs-2
 
 div.div-table-content
   table.table.table-hover.table-condensed
@@ -15,10 +16,11 @@ div.div-table-content
       - @cups.each_with_index do |cup, index|
         tr.clickable href="#{cup_path(cup)}"
           td.col-xs-1 = index+1
-          td.col-xs-5 = cup.name
-          td.col-xs-1 = image_tag(cup.logo, class: "flag-icon")
-          td.col-xs-3 = cup.start_date
-          td.col-xs-3 = cup.end_date
+          td.col-xs-4 = cup.name
+          td.col-xs-1 = (image_tag(cup.logo, class: "flag-icon") if cup.logo.present?)
+          td.col-xs-2 = cup.start_date
+          td.col-xs-2 = cup.end_date
+          td.col-xs-2.text-right
             - if can?(:destroy, cup)
               = link_to 'Destroy', cup, method: :delete, data: { confirm: 'Are you sure?' }, class: 'btn btn-xs btn-danger btn-one-col'
             - if can?(:edit, cup)

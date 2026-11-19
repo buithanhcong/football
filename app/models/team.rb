@@ -1,9 +1,9 @@
 class Team < ActiveRecord::Base
   belongs_to :cup
-  before_save :set_logourl
+  before_save :set_logourl, if: -> { new_record? || name_changed? || cup_id_changed? }
 
   def matches
-    Match.where(cup: cup).where("team1_id = ? OR team2_id = ?", self, self)
+    Match.where(cup: cup).where("team1_id = ? OR team2_id = ?", id, id)
   end
 
   def total_matches_count
@@ -14,34 +14,40 @@ class Team < ActiveRecord::Base
     matches.where(status: true, knockout: false)
   end
 
+  attr_writer :played_rows
+
+  def played_rows
+    @played_rows || played_matches.to_a
+  end
+
   def won_matches
-    played_matches.select{|match| match.winner == self}
+    played_rows.select { |m| m.winner_id == id }
   end
 
   def drew_matches
-    played_matches.select{|match| match.mainscore1 == match.mainscore2}
+    played_rows.select { |m| m.mainscore1 == m.mainscore2 }
   end
 
   def loss_matches
-    played_matches.select{|match| match.looser == self}
+    played_rows.select { |m| m.loser_id == id }
   end
 
   def goal_for
-    played_matches.inject(0) {|sum, match| sum + (match.team1 == self ? match.mainscore1 : match.mainscore2)}
+    played_rows.sum { |m| m.team1_id == id ? m.mainscore1 : m.mainscore2 }
   end
 
   def goal_against
-    played_matches.inject(0) {|sum, match| sum + (match.team1 == self ? match.mainscore2 : match.mainscore1)}
+    played_rows.sum { |m| m.team1_id == id ? m.mainscore2 : m.mainscore1 }
   end
 
   def remain_matches_count
-    total_matches_count - played_matches_count
+    total_matches_count - played_rows.size
   end
 
   def update_score
     score = 0
     played_matches.each do |match|
-      score += match.equal? ? 1 : (match.winner == self ? 3 : 0)
+      score += match.draw? ? 1 : (match.winner_id == id ? 3 : 0)
     end
     update(score: score)
   end
@@ -60,27 +66,15 @@ class Team < ActiveRecord::Base
 
   private
     def set_logourl
-      self.logourl = get_logourl
+      self.logourl = fetch_logourl || logourl.to_s
       true
     end
 
-    def get_logourl
-      require 'net/http'
-      uri = URI.parse("https://api.football-data.org/v4/competitions/"+cup.result_id.to_s+"/teams?season="+Date.today.strftime("%Y"))
-      http = Net::HTTP.new(uri.host, uri.port)
-      http.use_ssl = (uri.scheme == 'https')
-      request = Net::HTTP::Get.new(uri.request_uri, {"X-Auth-Token"=>ENV['FOOTBALL_API_KEY']})
-      resp = http.request(request)
-      if resp.kind_of? Net::HTTPSuccess
-        data = JSON.parse(resp.body)
-        teams = data['teams'].select{|m| (m['name'] == name)}
-        if teams.count > 0
-          teams.last['crest']
-        else
-          ''
-        end
-      else
-        ''
-      end
+    def fetch_logourl
+      return if cup.nil? || cup.result_id.to_i.zero?
+      data = FootballData.get("competitions/#{cup.result_id}/teams", season: Date.today.year)
+      return if data.nil?
+      api_team = Array(data['teams']).reverse.find { |t| t['name'] == name }
+      api_team ? api_team['crest'] : ''
     end
 end

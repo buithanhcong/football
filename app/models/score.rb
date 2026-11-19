@@ -3,31 +3,16 @@ class Score < ActiveRecord::Base
   belongs_to :cup
 
   def update_score_reward
-    score = 0
-    user.predictions_of_cup(cup).each do |prediction|
-      next if prediction.match.knockout?
-      score += prediction.win? ? 2 : (prediction.subwin? ? 1 : 0)
-    end
-    update(score: score)
-    reward = 0
-    knockout_reward = 0
-    user.predictions_of_cup(cup).each do |prediction|
-      if prediction.match.knockout?
-        knockout_reward += prediction.reward.nil? ? 0 : prediction.reward
-      else
-        reward += prediction.reward.nil? ? 0 : prediction.reward
-      end
-    end
-    update(reward: reward)
-    update(knockout_reward: knockout_reward)
-    knockout_fee = 0
-    user.predictions_of_stage(cup, true).each do |p|
-      knockout_fee += p.match.fee
-    end
-    update(knockout_fee: knockout_fee)
+    group, knockout = user.predictions_of_cup(cup).includes(:match).partition { |p| !p.match.knockout? }
+    update(
+      score: group.sum { |p| p.win? ? 2 : (p.subwin? ? 1 : 0) },
+      reward: group.sum { |p| p.reward.to_i },
+      knockout_reward: knockout.sum { |p| p.reward.to_i },
+      knockout_fee: knockout.select { |p| p.match.closed? }.sum { |p| p.match.fee.to_i }
+    )
   end
 
   def knockout_profit
-    knockout_reward - knockout_fee
+    knockout_reward.to_i - knockout_fee.to_i
   end
 end

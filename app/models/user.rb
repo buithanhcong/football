@@ -14,8 +14,7 @@ class User < ActiveRecord::Base
   end
   
   def get_score(cup)
-    score_user_at_cup = Score.where(user: self, cup: cup)
-    score_user_at_cup.count == 0 ? 0 : score_user_at_cup.first.score 
+    scores.find_by(cup: cup)&.score || 0
   end
 
   def predictions_of_cup(cup)
@@ -31,15 +30,11 @@ class User < ActiveRecord::Base
     #predictions_of_cup(cup).select{|p| (p.match.knockout == knockout)}
   end
 
-  def self.reset_pass(i_email)
-    # Its static method
-    @u = find_by(email: i_email)
-    if @u.nil?
-      puts "Email not found!"
-    else
-      require 'bcrypt'
-      @u.update(encrypted_password: BCrypt::Password.create("12345678"))
-      puts "Password reset done!"
-    end
+  def self.reset_pass(email)
+    user = find_by(email: email)
+    return puts("Email not found!") if user.nil?
+    password = SecureRandom.alphanumeric(10)
+    user.update!(password: password, password_confirmation: password)
+    puts "Password reset to: #{password}"
   end
 end

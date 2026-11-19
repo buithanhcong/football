@@ -25,7 +25,7 @@ div.div-table-content
           td.col-xs-1 = index + 1
           td.col-xs-2 = render("shared/team_name", team: team)
           td.col-xs-1 = team.score
-          td.col-xs-1 = team.played_matches.count
+          td.col-xs-1 = team.played_rows.size
           td.col-xs-1 = team.won_matches.count
           td.col-xs-1 = team.drew_matches.count
           td.col-xs-1 = team.loss_matches.count

@@ -4,7 +4,7 @@ class PredictionsController < ApplicationController
   before_action :set_cup, only: [:index, :create, :new]
 
   def index
-    @predictions = current_user.predictions.where(cup_id: @cup.id).order(:match_id)
+    @predictions = current_user.predictions.where(cup_id: @cup.id).includes(match: [:team1, :team2]).order(:match_id).to_a
   end
 
   def show
@@ -50,6 +50,7 @@ class PredictionsController < ApplicationController
   private
     def set_prediction
       @prediction = Prediction.find(params[:prediction_id])
+      authorize! action_name.to_sym, @prediction
     end
 
     def set_cup
